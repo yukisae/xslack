@@ -239,6 +239,12 @@ class UserApi:
             raise Exception(resp.response_metadata)
         return Channels(self._client, resp.channels)
 
+    def getPresence(self, user):
+        if isinstance(user, User):
+            user = user.id
+        resp = self._client.api_call("users.getPresence", user=user)
+        return resp
+
     def byName(self, name):
         return self.list().byName(name)
 
@@ -284,6 +290,9 @@ class User(AttrDict):
 
     def conversations(self, **kwargs):
         return self._client.user.conversations(user=self)
+
+    def getPresence(self):
+        return self._client.user.getPresence(user=self)
 
 
 class EmojiApi:
