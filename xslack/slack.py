@@ -24,9 +24,14 @@ class Client:
         self.emoji = EmojiApi(self)
 
     def api_call(self, api_method: str, *, files: dict = None, params={}, **kwargs):
+        union_params = {**params, **kwargs}
+        for key, value in union_params.items():
+            if isinstance(value, bool):
+                value = 1 if value else 0
+                union_params[key] = value
         return AttrDict(
             self.client.api_call(
-                api_method, files=files, params={**params, **kwargs}
+                api_method, files=files, params=union_params
             ).data
         )
 
@@ -119,6 +124,8 @@ class ChatApi:
         self._client = client
 
     def postEphemeral(self, channel, text, user, **kwargs):
+        if isinstance(channel, Channel):
+            channel = channel.id
         if isinstance(user, User):
             user = user.id
         return self._client.api_call(
@@ -126,6 +133,8 @@ class ChatApi:
         )
 
     def postMessage(self, channel, text, **kwargs):
+        if isinstance(channel, Channel):
+            channel = channel.id
         return self._client.api_call(
             "chat.postMessage", channel=channel, text=text, **kwargs
         )
@@ -221,8 +230,10 @@ class UserApi:
         resp = self._client.api_call("users.list", **kwargs)
         return Users(self._client, resp.members)
 
-    def conversations(self, **kwargs):
-        resp = self._client.api_call("users.conversations", **kwargs)
+    def conversations(self, user):
+        if isinstance(user, User):
+            user = user.id
+        resp = self._client.api_call("users.conversations", user=user)
         # TODO
         if resp.response_metadata and resp.response_metadata.next_cursor:
             raise Exception(resp.response_metadata)
@@ -272,7 +283,7 @@ class User(AttrDict):
             return super().__getattribute__(name)
 
     def conversations(self, **kwargs):
-        return self._client.user.conversations(user=self.id)
+        return self._client.user.conversations(user=self)
 
 
 class EmojiApi:
